@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "app_master.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        esp_driver_i2c
+        esp_driver_gpio
+        bus
+        DS3231
+        lora02
+        board 
+)
