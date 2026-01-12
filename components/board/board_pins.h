@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include "driver/uart.h"
 #include "driver/spi_master.h"
 #include "driver/i2c_master.h"

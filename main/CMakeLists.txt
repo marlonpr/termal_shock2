@@ -2,13 +2,26 @@ idf_component_register(
     SRCS
         "main.c"
         "app_master.c"
+        "app_data.c"
+        "protocol.c"
+        "state_machine.c"
+        "command_manager.c"
+        "master_link.c"
+        "master_transport.c"
+        "master_uart_rx.c"
+        "termal_shock.c"
+        "master_command.c"
+        "rtc_service.c"
+        "rtc_device.c"
     INCLUDE_DIRS
         "."
     REQUIRES
         esp_driver_i2c
         esp_driver_gpio
+        esp_timer
         bus
         DS3231
         lora02
-        board 
+        board
+        max31865 
 )
