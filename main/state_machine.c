@@ -29,7 +29,7 @@ typedef struct {
 static sm_ctx_t ctx;
 
 /* ================= HELPERS ================= */
-static void enter_state(sm_state_t next)
+static void sm_enter_state(sm_state_t next)
 {
     ctx.state = next;
     ctx.state_enter_sec = rtc_get_epoch_seconds();
@@ -57,17 +57,17 @@ static bool elapsed_sec(uint32_t duration)
 void sm_init(void)
 {
     ctx = (sm_ctx_t){0};
-    enter_state(SM_IDLE);
+    sm_enter_state(SM_IDLE);
 }
 
 void sm_start(void)
 {
-    enter_state(SM_PREHEAT);
+    sm_enter_state(SM_PREHEAT);
 }
 
 void sm_stop(void)
 {
-    enter_state(SM_IDLE);
+    sm_enter_state(SM_IDLE);
 }
 
 void sm_update_temperatures(float t1, float t2, float t3)
@@ -88,19 +88,19 @@ void sm_tick(void)
 {
     switch (ctx.state) {
         case SM_PREHEAT:
-            if (ctx.t1 >= HOT_TARGET_C && ctx.float1) enter_state(SM_HOT_DWELL);
+            if (ctx.t1 >= HOT_TARGET_C && ctx.float1) sm_enter_state(SM_HOT_DWELL);
             break;
         case SM_HOT_DWELL:
-            if (elapsed_sec(HOT_DWELL_SEC)) enter_state(SM_COLD_DWELL);
+            if (elapsed_sec(HOT_DWELL_SEC)) sm_enter_state(SM_COLD_DWELL);
             break;
         case SM_COLD_DWELL:
             if (elapsed_sec(COLD_DWELL_SEC)) {
                 thermal_shock_notify_cycle_complete();
-                enter_state(SM_WAIT);
+                sm_enter_state(SM_WAIT);
             }
             break;
         case SM_WAIT:
-            if (elapsed_sec(WAIT_SEC)) enter_state(SM_PREHEAT);
+            if (elapsed_sec(WAIT_SEC)) sm_enter_state(SM_PREHEAT);
             break;
         default: break;
     }

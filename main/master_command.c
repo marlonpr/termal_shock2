@@ -27,7 +27,7 @@ void master_handle_command(const payload_command_t *cmd)
 	case CMD_STOP_TEST:
 	    ESP_LOGI(TAG, "CMD_STOP_TEST");
 	
-	    thermal_shock_pause();
+	    thermal_shock_reset();
 	
 	    actuator_send_command(
 	        CMD_FORCE_RELAY,

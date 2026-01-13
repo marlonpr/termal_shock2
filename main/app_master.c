@@ -16,31 +16,58 @@
 #include "master_uart_rx.h"
 #include "protocol.h"
 #include "rtc_service.h"
+#include "termal_shock.h"
+
+
+static bool prev_float_1 = false;
+
+static void process_float_gate(void)
+{
+    bool float_ok = g_system_data.float_1;
+
+    /* FLOAT became OK (OPEN → CLOSED) */
+    if (float_ok && !prev_float_1) {
+
+        ts_data.init_done = true;
+
+        ESP_LOGI("FLOAT", "Float OK → system armed");
+
+        if (ts_data.state == TS_IDLE) {
+            ts_enter_state(TS_INIT);
+        }
+    }
+
+    /* FLOAT lost (CLOSED → OPEN) */
+    else if (!float_ok && prev_float_1) {
+
+        ESP_LOGE("FLOAT", "Float LOST → emergency reset");
+
+        ts_data.init_done = false;
+
+        thermal_shock_reset();
+
+        actuator_send_command(
+            CMD_FORCE_RELAY,
+            0x00,   /* all relays off */
+            0
+        );
+
+        ts_enter_state(TS_FAULT);
+    }
+
+    prev_float_1 = float_ok;
+}
+
+
 
 /* ================= LOG ================= */
 static const char *TAG = "APP_MASTER";
-
-
-
-
-
-
-
-
-
-
 
 typedef struct {
     gpio_num_t gpio;
     const char *name;
     int last_state;
 } float_sensor_t;
-
-
-
-
-
-
 
 static float_sensor_t sensors[] = {
     {
@@ -56,11 +83,6 @@ static float_sensor_t sensors[] = {
 };
 
 #define SENSOR_COUNT (sizeof(sensors) / sizeof(sensors[0]))
-
-
-
-
-
 
 static void float_sensors_init(void)
 {
@@ -92,87 +114,7 @@ int read_debounced(gpio_num_t gpio, int sample_count, int delay_ms)
     return state;
 }
 
-
-
-
-
-
-
-
-
-
-
-static const char *TAG3 = "FloatSensor";
-
-/*
-void init_float_sensor()
-{
-	    // Configure input pin with internal pull-up
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << PIN_FLOAT_2),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,   // enable internal pull-up
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&io_conf);
-
-    ESP_LOGI(TAG3, "Float sensor monitor started");
-}
-
-
-int read_debounced(int gpio, int sample_count, int delay_ms)
-{
-    int state = gpio_get_level(gpio);
-    for (int i = 0; i < sample_count; ++i) {
-        vTaskDelay(pdMS_TO_TICKS(delay_ms));
-        if (gpio_get_level(gpio) != state) {
-            // Not stable
-            return -1;
-        }
-    }
-    return state;
-}
-*/
-
-    int last_state = -1;
-
-	bool float_sensor_open = false;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ================= DEVICES ================= */
-static ds3231_dev_t rtc_dev;
-static bool rtc_initialized = false;
 
 #define NUM_PT100 2
 static max31865_t max31865_dev[NUM_PT100];
@@ -186,13 +128,7 @@ static TaskHandle_t task_sensors;
 static TaskHandle_t task_router;
 static TaskHandle_t task_fsm;
 
-/* ================= SAFE RTC READ ================= */
-static void safe_rtc_read(ds3231_time_t *time)
-{
-    if (!rtc_initialized || ds3231_get_time(&rtc_dev, time) != ESP_OK) {
-        ESP_LOGW(TAG, "RTC read failed, using last known time");
-    }
-}
+
 
 /* ================= SPI + MAX31865 INIT ================= */
 static esp_err_t init_max31865_devices(void)
@@ -259,21 +195,6 @@ static void task_sensor_loop(void *arg)
             g_system_data.pt100[i] = last_temp[i];
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 		for (int i = 0; i < SENSOR_COUNT; i++) {
 		            int state = read_debounced(sensors[i].gpio, 5, 10);
 		
@@ -291,24 +212,28 @@ static void task_sensor_loop(void *arg)
 		        }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-        // ===== FLOAT SWITCHES =====
-        //g_system_data.float_1 = !gpio_get_level(PIN_FLOAT_1);
-        //g_system_data.float_2 = !gpio_get_level(PIN_FLOAT_2);
-        
         g_system_data.float_1 = !sensors[0].last_state;
         g_system_data.float_2 = !sensors[1].last_state;
+        
+        
+        process_float_gate();
+
+        
+        
+              // ===== FLOAT SWITCHES =====
+        //g_system_data.float_1 = !gpio_get_level(PIN_FLOAT_1);
+        //g_system_data.float_2 = !gpio_get_level(PIN_FLOAT_2);
+          
+        
+        
+        
+    
+        
+        
+        
+        
+        
+        
 
         // ===== SEQUENCE =====
         g_system_data.sequence++;
@@ -383,50 +308,6 @@ static void task_fsm_loop(void *arg)
     }
 }
 
-/* ================= MASTER LINK TASK ================= */
-static void task_master_link_loop(void *arg)
-{
-    while (1) {
-        uint32_t now_ms = esp_timer_get_time() / 1000;
-        master_link_tick(now_ms);
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
-}
-
-
-
-
-void uart_test_task(void *arg)
-{
-    uint32_t seq = 1;
-    uint8_t buf[64];
-
-    while (1) {
-
-        size_t len = protocol_build_command_packet(
-            buf,
-            sizeof(buf),
-            seq,
-            CMD_UART_TEST,
-            0xA5A5,      // param16 test pattern
-            0x12345678   // param32 test pattern
-        );
-
-        if (len > 0) {
-            //actuator_send_bytes(buf, len);
-
-            ESP_LOGI(TAG,
-                     "TX TEST ACTUATOR seq=%lu",
-                     seq);
-        }
-
-        seq++;
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}
-
-
-
 
 
 /* ================= TASK CREATION ================= */
@@ -435,13 +316,7 @@ static void create_tasks(void)
     xTaskCreate(task_sensor_loop, "sensor_task", 4096, NULL, 5, &task_sensors);
     xTaskCreate(task_router_loop, "router_task", 4096, NULL, 4, &task_router);
     xTaskCreate(task_fsm_loop, "fsm_task", 4096, NULL, 6, &task_fsm);
-    xTaskCreate(task_master_link_loop, "master_link", 4096, NULL, 3, NULL);
     xTaskCreate(master_uart_rx_task, "uart_rx", 4096, NULL, 6, NULL);
-    
-    
-
-    
-
     ESP_LOGI(TAG, "All tasks created");
 }
 
@@ -464,7 +339,6 @@ void app_master_init(void)
     
 
     // 4. FSM + Command manager
-    sm_init();
     cmdmgr_init();
     
     
@@ -483,6 +357,20 @@ void app_master_start(void)
 		
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     //xTaskCreate(task_lora_loop,   "lora_task",   4096, NULL, 3, &task_lora);
 
@@ -533,6 +421,34 @@ static esp_err_t init_lora_spi_device(void)
 
 
 /*
+void uart_test_task(void *arg)
+{
+    uint32_t seq = 1;
+    uint8_t buf[64];
+
+    while (1) {
+
+        size_t len = protocol_build_command_packet(
+            buf,
+            sizeof(buf),
+            seq,
+            CMD_UART_TEST,
+            0xA5A5,      // param16 test pattern
+            0x12345678   // param32 test pattern
+        );
+
+        if (len > 0) {
+            //actuator_send_bytes(buf, len);
+
+            ESP_LOGI(TAG,
+                     "TX TEST ACTUATOR seq=%lu",
+                     seq);
+        }
+
+        seq++;
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
 
     xTaskCreate(
     uart_test_task,

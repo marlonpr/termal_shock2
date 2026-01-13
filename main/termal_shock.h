@@ -47,4 +47,4 @@ void thermal_shock_notify_hot(void);
 void thermal_shock_notify_cold(void);
 void thermal_shock_notify_cycle_complete(void);
 void task_thermal_shock(void *arg);
-
+void ts_enter_state(ts_state_t next);

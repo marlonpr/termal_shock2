@@ -14,7 +14,7 @@ thermal_shock_t ts_data;
 
 /* ================= INTERNAL ================= */
 
-static void enter_state(ts_state_t next)
+void ts_enter_state(ts_state_t next)
 {
     ts_data.state = next;
 
@@ -65,15 +65,14 @@ void thermal_shock_init(uint32_t max_cycles)
 
 void thermal_shock_start(void)
 {
-    //if (!ts_data.init_done) {
-	if (false) {
+    if (!ts_data.init_done) {
         ESP_LOGW(TAG, "Start rejected: init not complete");
         return;
     }
 
     if (ts_data.state == TS_IDLE || ts_data.state == TS_FINISHED) {
         sm_start();
-        enter_state(TS_RUNNING);
+        ts_enter_state(TS_RUNNING);
         ESP_LOGI(TAG, "Thermal shock START");
     }
 }
@@ -82,7 +81,7 @@ void thermal_shock_pause(void)
 {
     if (ts_data.state == TS_RUNNING) {
         sm_stop();
-        enter_state(TS_PAUSED);
+        ts_enter_state(TS_PAUSED);
         ESP_LOGI(TAG, "Thermal shock PAUSED");
     }
 }
@@ -92,7 +91,7 @@ void thermal_shock_reset(void)
     sm_stop();
     ts_data.cycle_count = 0;
     ts_data.timer_sec   = 0;
-    enter_state(TS_IDLE);
+    ts_enter_state(TS_IDLE);
 
     ESP_LOGI(TAG, "Thermal shock RESET");
 }
@@ -133,7 +132,7 @@ void thermal_shock_notify_cycle_complete(void)
 
     if (ts_data.cycle_count >= ts_data.max_cycles) {
         sm_stop();
-        enter_state(TS_FINISHED);
+        ts_enter_state(TS_FINISHED);
         ESP_LOGI(TAG, "Thermal shock FINISHED");
     }
 }
