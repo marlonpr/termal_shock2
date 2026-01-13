@@ -18,7 +18,7 @@ void master_handle_command(const payload_command_t *cmd)
 	    /* Force HOT relay ON (example) */
 	    actuator_send_command(
 	        CMD_FORCE_RELAY,
-	        0x01,   // bit0 = HOT
+	        0x0F,   // bit0 = HOT
 	        0
 	    );
 	    break;

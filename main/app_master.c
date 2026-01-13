@@ -20,6 +20,156 @@
 /* ================= LOG ================= */
 static const char *TAG = "APP_MASTER";
 
+
+
+
+
+
+
+
+
+
+
+typedef struct {
+    gpio_num_t gpio;
+    const char *name;
+    int last_state;
+} float_sensor_t;
+
+
+
+
+
+
+
+static float_sensor_t sensors[] = {
+    {
+        .gpio = PIN_FLOAT_1,
+        .name = "Tank_High",
+        .last_state = -1
+    },
+    {
+        .gpio = PIN_FLOAT_2,
+        .name = "Tank_Low",
+        .last_state = -1
+    }
+};
+
+#define SENSOR_COUNT (sizeof(sensors) / sizeof(sensors[0]))
+
+
+
+
+
+
+static void float_sensors_init(void)
+{
+    gpio_config_t io_conf = {
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,   // external 4.7k pull-ups
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+
+    for (int i = 0; i < SENSOR_COUNT; i++) {
+        io_conf.pin_bit_mask = (1ULL << sensors[i].gpio);
+        gpio_config(&io_conf);
+    }
+}
+
+
+
+int read_debounced(gpio_num_t gpio, int sample_count, int delay_ms)
+{
+    int state = gpio_get_level(gpio);
+
+    for (int i = 0; i < sample_count; i++) {
+        vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        if (gpio_get_level(gpio) != state) {
+            return -1;
+        }
+    }
+    return state;
+}
+
+
+
+
+
+
+
+
+
+
+
+static const char *TAG3 = "FloatSensor";
+
+/*
+void init_float_sensor()
+{
+	    // Configure input pin with internal pull-up
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << PIN_FLOAT_2),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,   // enable internal pull-up
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
+
+    ESP_LOGI(TAG3, "Float sensor monitor started");
+}
+
+
+int read_debounced(int gpio, int sample_count, int delay_ms)
+{
+    int state = gpio_get_level(gpio);
+    for (int i = 0; i < sample_count; ++i) {
+        vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        if (gpio_get_level(gpio) != state) {
+            // Not stable
+            return -1;
+        }
+    }
+    return state;
+}
+*/
+
+    int last_state = -1;
+
+	bool float_sensor_open = false;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ================= DEVICES ================= */
 static ds3231_dev_t rtc_dev;
 static bool rtc_initialized = false;
@@ -109,9 +259,56 @@ static void task_sensor_loop(void *arg)
             g_system_data.pt100[i] = last_temp[i];
         }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		for (int i = 0; i < SENSOR_COUNT; i++) {
+		            int state = read_debounced(sensors[i].gpio, 5, 10);
+		
+		            if (state >= 0 && state != sensors[i].last_state) {
+		                sensors[i].last_state = state;
+		
+		                if (state == 0) 
+		                {
+		                    ESP_LOGI("FLOAT", "%s: CLOSED (level reached)", sensors[i].name);
+		                } else 
+		                {
+		                    ESP_LOGI("FLOAT", "%s: OPEN (below level)", sensors[i].name);
+		                }
+		            }
+		        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         // ===== FLOAT SWITCHES =====
-        g_system_data.float_1 = !gpio_get_level(PIN_FLOAT_1);
-        g_system_data.float_2 = !gpio_get_level(PIN_FLOAT_2);
+        //g_system_data.float_1 = !gpio_get_level(PIN_FLOAT_1);
+        //g_system_data.float_2 = !gpio_get_level(PIN_FLOAT_2);
+        
+        g_system_data.float_1 = !sensors[0].last_state;
+        g_system_data.float_2 = !sensors[1].last_state;
 
         // ===== SEQUENCE =====
         g_system_data.sequence++;
@@ -133,7 +330,7 @@ static void task_sensor_loop(void *arg)
             g_system_data.float_2
         );
 
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -182,7 +379,7 @@ static void task_fsm_loop(void *arg)
         sm_update_floats(float1_cache, float2_cache);
         sm_tick();
 
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -242,14 +439,6 @@ static void create_tasks(void)
     xTaskCreate(master_uart_rx_task, "uart_rx", 4096, NULL, 6, NULL);
     
     
-    xTaskCreate(
-    uart_test_task,
-    "uart_test",
-    2048,
-    NULL,
-    5,
-    NULL
-);
 
     
 
@@ -279,7 +468,7 @@ void app_master_init(void)
     cmdmgr_init();
     
     
-    
+    float_sensors_init();
 
 
     ESP_LOGI(TAG, "Master init complete");
@@ -337,5 +526,21 @@ static esp_err_t init_lora_spi_device(void)
     return spi_bus_add_device(VSPI_HOST, &devcfg, &spi_lora);
 }
 
+
+*/
+
+
+
+
+/*
+
+    xTaskCreate(
+    uart_test_task,
+    "uart_test",
+    2048,
+    NULL,
+    5,
+    NULL
+);
 
 */
