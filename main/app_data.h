@@ -2,8 +2,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define NUM_PT100 2  // number of PT100 sensors
+
 typedef struct {
-    /* Timestamp (RTC) */
+    uint32_t sequence;
+
+    // RTC
     uint16_t year;
     uint8_t  month;
     uint8_t  day;
@@ -11,17 +15,14 @@ typedef struct {
     uint8_t  minute;
     uint8_t  second;
 
-    /* Temperatures */
-    float pt100_1;
-    float pt100_2;
-    float pt100_3;
+    // PT100 sensors
+    float pt100[NUM_PT100];
 
-    /* Digital inputs */
+    // Float switches
     bool float_1;
     bool float_2;
 
-    /* System flags */
-    uint32_t sequence;
+    // Add other system data as needed
 } system_data_t;
 
 extern system_data_t g_system_data;

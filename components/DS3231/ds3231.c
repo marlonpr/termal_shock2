@@ -15,10 +15,7 @@ static inline uint8_t bcd2dec(uint8_t val)
     return ((val >> 4) * 10) + (val & 0x0F);
 }
 
-esp_err_t ds3231_init(
-    ds3231_dev_t *dev,
-    i2c_master_bus_handle_t bus
-)
+esp_err_t ds3231_init(ds3231_dev_t *dev, i2c_master_bus_handle_t bus)
 {
     if (!dev || !bus) return ESP_ERR_INVALID_ARG;
 
@@ -29,13 +26,15 @@ esp_err_t ds3231_init(
         .scl_speed_hz = 100000
     };
 
-    ESP_ERROR_CHECK(
-        i2c_master_bus_add_device(bus, &dev_cfg, &dev->dev)
-    );
+    // Remove ESP_ERROR_CHECK if i2c_master_bus_add_device returns void
+    i2c_master_bus_add_device(bus, &dev_cfg, &dev->dev);
 
     ESP_LOGI(TAG, "DS3231 device attached");
+    ESP_LOGI(TAG, "DS3231 dev handle: %p", dev->dev);
+
     return ESP_OK;
 }
+
 
 esp_err_t ds3231_set_time(ds3231_dev_t *dev, const ds3231_time_t *time)
 {
@@ -57,7 +56,10 @@ esp_err_t ds3231_set_time(ds3231_dev_t *dev, const ds3231_time_t *time)
 
 esp_err_t ds3231_get_time(ds3231_dev_t *dev, ds3231_time_t *time)
 {
-    if (!dev || !time) return ESP_ERR_INVALID_ARG;
+    if (!dev || !time || !dev->dev) {
+        ESP_LOGE(TAG, "DS3231 I2C handle not initialized");
+        return ESP_ERR_INVALID_ARG;
+    }
 
     uint8_t reg = 0x00;
     uint8_t data[7];
@@ -75,3 +77,4 @@ esp_err_t ds3231_get_time(ds3231_dev_t *dev, ds3231_time_t *time)
 
     return ESP_OK;
 }
+

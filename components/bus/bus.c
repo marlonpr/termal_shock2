@@ -28,6 +28,8 @@ esp_err_t bus_i2c_init(void)
 
     ESP_ERROR_CHECK(i2c_new_master_bus(&cfg, &i2c_bus));
     ESP_LOGI(TAG, "I2C bus initialized");
+    ESP_LOGI(TAG, "I2C bus handle: %p", i2c_bus);
+
 
     return ESP_OK;
 }
@@ -53,20 +55,24 @@ esp_err_t bus_spi_init(void)
         spi_bus_initialize(SPI_HOST_USED, &buscfg, SPI_DMA_DISABLED)
     );
 
+/*
     spi_device_interface_config_t devcfg = {
         .clock_speed_hz = 1 * 1000 * 1000,
         .mode = 0,
         .spics_io_num = PIN_LORA_CS,
         .queue_size = 1
     };
+*/
 
+/*
     ESP_ERROR_CHECK(
         spi_bus_add_device(SPI_HOST_USED, &devcfg, &spi_lora)
     );
+*/
 
     spi_initialized = true;
 
-    ESP_LOGI(TAG, "SPI bus + LoRa device initialized");
+    ESP_LOGI(TAG, "SPI bus ");
 
     return ESP_OK;
 }

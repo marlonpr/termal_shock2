@@ -1,4 +1,5 @@
 #include "protocol.h"
+#include "master_transport.h"
 #include "termal_shock.h"
 #include "esp_log.h"
 
@@ -8,15 +9,33 @@ void master_handle_command(const payload_command_t *cmd)
 {
     switch (cmd->cmd_id) {
 
-    case CMD_START_TEST:
-        ESP_LOGI(TAG, "CMD_START_TEST");
-        thermal_shock_start();
-        break;
+	case CMD_START_TEST:
+	    ESP_LOGI(TAG, "CMD_START_TEST");
+	
+	    /* Start MASTER logic */
+	    thermal_shock_start();
+	
+	    /* Force HOT relay ON (example) */
+	    actuator_send_command(
+	        CMD_FORCE_RELAY,
+	        0x01,   // bit0 = HOT
+	        0
+	    );
+	    break;
 
-    case CMD_STOP_TEST:
-        ESP_LOGI(TAG, "CMD_STOP_TEST");
-        thermal_shock_pause();
-        break;
+
+	case CMD_STOP_TEST:
+	    ESP_LOGI(TAG, "CMD_STOP_TEST");
+	
+	    thermal_shock_pause();
+	
+	    actuator_send_command(
+	        CMD_FORCE_RELAY,
+	        0x00,   // all relays off
+	        0
+	    );
+	    break;
+
 
     case CMD_REQUEST_STATE:
         ESP_LOGI(TAG, "CMD_REQUEST_STATE");

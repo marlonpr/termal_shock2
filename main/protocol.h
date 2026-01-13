@@ -5,6 +5,8 @@
 
 #define PROTOCOL_VERSION  1
 #define PACKET_MAGIC      0xA5
+#define CMD_UART_TEST   0xF0
+
 
 /* ================= MODE DEFINITIONS (WIRE LEVEL) ================= */
 /* Used by CMD_SET_MODE, CMD_FORCE_RELAY */

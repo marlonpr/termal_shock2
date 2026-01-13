@@ -37,10 +37,10 @@ size_t protocol_build_status_packet(uint8_t *out, size_t max_len)
     payload_status_t *pl =
         (payload_status_t *)(out + sizeof(packet_header_t));
 
-    /* Payload */
-    pl->pt100_1_centi = (int16_t)(g_system_data.pt100_1 * 100.0f);
-    pl->pt100_2_centi = (int16_t)(g_system_data.pt100_2 * 100.0f);
-    pl->pt100_3_centi = (int16_t)(g_system_data.pt100_3 * 100.0f);
+    /* Payload - use array instead of separate members */
+    pl->pt100_1_centi = (int16_t)(g_system_data.pt100[0] * 100.0f);
+    pl->pt100_2_centi = (int16_t)(g_system_data.pt100[1] * 100.0f);
+    pl->pt100_3_centi = (int16_t)(g_system_data.pt100[2] * 100.0f);
 
     pl->float_mask =
         (g_system_data.float_1 ? 0x01 : 0) |
@@ -62,6 +62,7 @@ size_t protocol_build_status_packet(uint8_t *out, size_t max_len)
 
     return total_len;
 }
+
 
 /* ================= COMMAND ================= */
 

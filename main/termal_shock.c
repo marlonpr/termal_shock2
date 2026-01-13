@@ -65,7 +65,8 @@ void thermal_shock_init(uint32_t max_cycles)
 
 void thermal_shock_start(void)
 {
-    if (!ts_data.init_done) {
+    //if (!ts_data.init_done) {
+	if (false) {
         ESP_LOGW(TAG, "Start rejected: init not complete");
         return;
     }

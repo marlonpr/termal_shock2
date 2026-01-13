@@ -1,10 +1,21 @@
 #pragma once
-#include <stdint.h>
-#include <stdbool.h>
 
-/* Returns current epoch seconds from DS3231 RTC */
+#include "esp_err.h"
+#include "ds3231.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Initialize RTC service
+esp_err_t rtc_service_init(void);
+
+// Read current time safely
+esp_err_t rtc_service_get_time(ds3231_time_t *time);
+
+// Return epoch seconds since 2000-01-01 00:00:00
 uint32_t rtc_get_epoch_seconds(void);
 
-/* Optional: read individual time/date components */
-bool rtc_get_time(uint8_t *hour, uint8_t *minute, uint8_t *second,
-                  uint8_t *day, uint8_t *month, uint16_t *year);
+#ifdef __cplusplus
+}
+#endif

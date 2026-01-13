@@ -1,6 +1,8 @@
 #include "command_manager.h"
 #include "protocol.h"
 #include "esp_log.h"
+#include "master_transport.h"  // contains actuator_send_bytes()
+
 
 #define TAG "CMDMGR"
 
@@ -47,7 +49,9 @@ bool cmdmgr_send_relay(bool hot_on, bool cold_on)
         return false;
     }
 
-    /* Transport send will be added later */
+    /* Transport send */
+    master_send_bytes(buf, len);  // <-- send to Actuator via UART
+
     ESP_LOGI(TAG, "CMD SEND seq=%lu hot=%d cold=%d",
              seq_counter, hot_on, cold_on);
 

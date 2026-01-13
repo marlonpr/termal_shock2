@@ -29,7 +29,7 @@ void master_uart_rx_task(void *arg)
     size_t  rx_len = 0;
 
     while (1) {
-        int n = uart_read_bytes(UART_RELAY, rx_buf + rx_len,
+        int n = uart_read_bytes(UART_UI, rx_buf + rx_len,
                                 RX_BUF_SIZE - rx_len, pdMS_TO_TICKS(100));
 
         if (n <= 0) continue;
