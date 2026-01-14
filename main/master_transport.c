@@ -115,7 +115,7 @@ void actuator_uart_init(void)
     );
 
     ESP_LOGI(TAG_UI,
-        "Master UART initialized (UART=%d TX=%d RX=%d)",
+        "Actuator UART initialized (UART=%d TX=%d RX=%d)",
         UART_UI,
         PIN_UART_UI_TX,
         PIN_UART_UI_RX
