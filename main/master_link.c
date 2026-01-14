@@ -46,13 +46,11 @@ bool master_link_send_command(
         return false;
     }
 
-    uint8_t buf[64];
-
-    uint32_t seq = sequence_counter++;   // <-- FIX
+    uint32_t seq = sequence_counter++;
 
     size_t len = protocol_build_command_packet(
-        buf,
-        sizeof(buf),
+        pending.packet,                 // <-- STORE PACKET
+        sizeof(pending.packet),
         seq,
         cmd_id,
         param16,
@@ -63,7 +61,9 @@ bool master_link_send_command(
         return false;
     }
 
-    master_send_bytes(buf, len);
+    pending.packet_len = len;           // <-- STORE LENGTH
+
+    master_send_bytes(pending.packet, len);
 
     pending.active      = true;
     pending.cmd_id      = cmd_id;
@@ -73,14 +73,11 @@ bool master_link_send_command(
     pending.deadline_ms =
         (esp_timer_get_time() / 1000) + ACK_TIMEOUT_MS;
 
-    ESP_LOGI(TAG,
-        "CMD %u sent seq=%lu",
-        cmd_id,
-        seq
-    );
+    ESP_LOGI(TAG, "CMD %u sent seq=%lu", cmd_id, seq);
 
     return true;
 }
+
 
 
 /* ================================================= */
