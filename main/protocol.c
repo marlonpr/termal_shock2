@@ -139,3 +139,33 @@ size_t protocol_build_ack_packet(uint8_t *out, size_t max_len,
 
     return total_len;
 }
+
+
+
+size_t protocol_build_telemetry_packet(uint8_t *buf,
+                                       size_t buf_size,
+                                       uint8_t pkt_type,
+                                       uint32_t sequence,
+                                       const void *payload,
+                                       uint16_t payload_len)
+{
+    size_t total_len = sizeof(packet_header_t) + payload_len + 2;
+    if (buf_size < total_len) return 0;
+
+    packet_header_t hdr = {
+        .magic    = PACKET_MAGIC,
+        .version  = PROTOCOL_VERSION,
+        .type     = pkt_type,
+        .length   = payload_len,
+        .sequence = sequence
+    };
+
+    memcpy(buf, &hdr, sizeof(hdr));
+    memcpy(buf + sizeof(hdr), payload, payload_len);
+
+    uint16_t crc = crc16_ccitt(buf, sizeof(hdr) + payload_len, 0);
+    buf[sizeof(hdr) + payload_len]     = crc >> 8;
+    buf[sizeof(hdr) + payload_len + 1] = crc & 0xFF;
+
+    return total_len;
+}

@@ -4,8 +4,13 @@
 
 /* ================= SYSTEM STATES ================= */
 
+#pragma once
+
+#include <stdint.h>
+#include <stdbool.h>
+
 typedef enum {
-    TS_IDLE = 0,
+    TS_IDLE,
     TS_INIT,
     TS_RUNNING,
     TS_PAUSED,
@@ -14,9 +19,22 @@ typedef enum {
 } ts_state_t;
 
 typedef enum {
-    TS_MODE_HOT = 0,
+    TS_MODE_HOT,
     TS_MODE_COLD
 } ts_mode_t;
+
+/* Existing API */
+void thermal_shock_init(uint32_t max_cycles);
+void thermal_shock_start(void);
+void thermal_shock_pause(void);
+void thermal_shock_reset(void);
+
+/* ===== READ-ONLY TELEMETRY ACCESSORS ===== */
+
+ts_state_t thermal_shock_get_state(void);
+ts_mode_t  thermal_shock_get_mode(void);
+uint32_t   thermal_shock_get_cycle_count(void);
+uint32_t   thermal_shock_get_max_cycles(void);
 
 /* ================= SYSTEM DATA ================= */
 
@@ -35,12 +53,6 @@ typedef struct {
 
 extern thermal_shock_t ts_data;
 
-/* ================= API ================= */
-
-void thermal_shock_init(uint32_t max_cycles);
-void thermal_shock_start(void);
-void thermal_shock_pause(void);
-void thermal_shock_reset(void);
 
 /* Hooks from lower FSM */
 void thermal_shock_notify_hot(void);

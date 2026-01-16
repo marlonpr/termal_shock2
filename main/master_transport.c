@@ -76,6 +76,30 @@ void master_send_bytes(const uint8_t *data, size_t len)
 
 
 
+
+void master_send_bytes_2(const uint8_t *data, size_t len)
+{
+    if (!data || len == 0) return;
+
+    /* Compute CRC */
+    uint16_t crc = crc16_ccitt(data, len, 0);
+
+    /* Create a temporary buffer to append CRC */
+    uint8_t buf[256];
+    if (len + 2 > sizeof(buf)) return;  // safety
+    memcpy(buf, data, len);
+    buf[len]     = crc >> 8;
+    buf[len + 1] = crc & 0xFF;
+    len += 2;
+
+    uart_write_bytes(UART_UI, (const char *)buf, len);
+}
+
+
+
+
+
+
 static const char *TAG_UI = "ACTUATOR_UART";
 
 void actuator_uart_init(void)

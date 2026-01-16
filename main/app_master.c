@@ -2,6 +2,7 @@
 #include "app_master.h"
 #include "app_data.h"
 #include "driver/gpio.h"
+#include "driver/uart.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -22,7 +23,23 @@
 #include "master_uart_rx.h"
 #include "protocol.h"
 
-static const char *TAG = "APP_MASTER";
+static const char *TAG7 = "APP_MASTER";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ============================================================
  * FLOAT SAFETY GATE
@@ -43,6 +60,7 @@ static void process_float_gate(void)
         if (ts_data.state == TS_IDLE) {
             ts_enter_state(TS_INIT);
         }
+        thermal_shock_reset();
     }
     /* Float lost → emergency reset */
     else if (!float_ok && prev_float_1) {
@@ -162,9 +180,9 @@ static void task_sensor_loop(void *arg)
     while (1) {
 
         rtc_service_get_time(&last_time);
-
         g_system_data.second = last_time.second;
 
+        /* -------- Read PT100 -------- */
         for (int i = 0; i < NUM_PT100; i++) {
             float t;
             if (max31865_read_temperature(&max31865_dev[i], &t) == ESP_OK) {
@@ -173,6 +191,38 @@ static void task_sensor_loop(void *arg)
             g_system_data.pt100[i] = last_temp[i];
         }
 
+        /* -------- Log once per second -------- */
+        ESP_LOGI("TEMP",
+                 "T1=%.2f T2=%.2f T3=%.2f T4=%.2f",
+                 g_system_data.pt100[0],
+                 g_system_data.pt100[1],
+                 g_system_data.pt100[2],
+                 g_system_data.pt100[3]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /* -------- Float sensors -------- */
         for (int i = 0; i < SENSOR_COUNT; i++) {
             int state = read_debounced(sensors[i].gpio, 5, 10);
             if (state >= 0 && state != sensors[i].last_state) {
@@ -187,10 +237,67 @@ static void task_sensor_loop(void *arg)
         g_system_data.float_2 = !sensors[1].last_state;
 
         process_float_gate();
+        
+
+        
+        //uart_write_bytes(UART_X, "HELLO_UI\n", 9);
+
+        
+         //   uart_write_bytes(UART_UI, (const char *)"hello", 9);
+            
+                       // uart_write_bytes(UART_RELAY, (const char *)"hello2", 9);
+
+
+        
+        
+        
+          //  master_send_bytes("hello", 9);
+
+        
+        
+        
+        
+        
+        static uint8_t last_float_mask;
+
+uint8_t float_mask =
+    (g_system_data.float_1 ? 0x01 : 0) |
+    (g_system_data.float_2 ? 0x02 : 0);
+
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
+
 
 /* ============================================================
  * CONTROL LOOP (RTC-BASED FSM TICK)
@@ -249,7 +356,7 @@ static void create_tasks(void)
     xTaskCreate(task_router_loop,  "router_task",  4096, NULL, 4, NULL);
     xTaskCreate(master_uart_rx_task,"uart_rx",     4096, NULL, 6, NULL);
 
-    ESP_LOGI(TAG, "All tasks created");
+    ESP_LOGI(TAG7, "All tasks created");
 }
 
 /* ============================================================
@@ -258,7 +365,7 @@ static void create_tasks(void)
 
 void app_master_init(void)
 {
-    ESP_LOGI(TAG, "Master init started");
+    ESP_LOGI(TAG7, "Master init started");
 
     ESP_ERROR_CHECK(bus_i2c_init());
     ESP_ERROR_CHECK(rtc_service_init());
@@ -273,12 +380,12 @@ void app_master_init(void)
     
     thermal_shock_init(3);
 
-    ESP_LOGI(TAG, "Master init complete");
+    ESP_LOGI(TAG7, "Master init complete");
 }
 
 void app_master_start(void)
 {
-    ESP_LOGI(TAG, "Starting master tasks");
+    ESP_LOGI(TAG7, "Starting master tasks");
     create_tasks();
 }
 
@@ -298,7 +405,7 @@ void app_master_start(void)
 static void task_lora_loop(void *arg)
 {
     while (1) {
-        ESP_LOGI(TAG, "LoRa handler");
+        ESP_LOGI(TAG7, "LoRa handler");
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
@@ -313,7 +420,7 @@ static void task_lora_loop(void *arg)
     ESP_ERROR_CHECK(lora_init(&lora, spi_lora, PIN_LORA_RST));
     lora_set_frequency(&lora, 915000000);   // change if needed
     lora_enable_rx(&lora);
-    ESP_LOGI(TAG, "LoRa initialized");
+    ESP_LOGI(TAG7, "LoRa initialized");
     
     
     
@@ -360,7 +467,7 @@ void uart_test_task(void *arg)
         if (len > 0) {
             //actuator_send_bytes(buf, len);
 
-            ESP_LOGI(TAG,
+            ESP_LOGI(TAG7,
                      "TX TEST ACTUATOR seq=%lu",
                      seq);
         }

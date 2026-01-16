@@ -9,6 +9,10 @@
 
 static const char *TAG = "THERMAL_SHOCK";
 
+static uint32_t ts_start_time_sec = 0;
+static ts_state_t last_sent_state = TS_FAULT; /* force first send */
+
+
 /* ================= GLOBAL DATA ================= */
 
 thermal_shock_t ts_data;
@@ -41,11 +45,13 @@ thermal_shock_t ts_data;
 
 void thermal_shock_init(uint32_t max_cycles)
 {
-    ts_data.state       = TS_INIT;
+    ts_data.state       = TS_IDLE;
     ts_data.mode        = TS_MODE_HOT;   /* Initial entry point */
     ts_data.cycle_count = 0;
     ts_data.max_cycles  = max_cycles;
     ts_data.init_done   = true;
+    
+    thermal_shock_reset();
 
     ESP_LOGI(TAG,
              "Thermal shock initialized (max_cycles=%lu)",
@@ -135,3 +141,22 @@ void thermal_shock_notify_cycle_complete(void)
     }
 }
 
+ts_state_t thermal_shock_get_state(void)
+{
+    return ts_data.state;
+}
+
+ts_mode_t thermal_shock_get_mode(void)
+{
+    return ts_data.mode;
+}
+
+uint32_t thermal_shock_get_cycle_count(void)
+{
+    return ts_data.cycle_count;
+}
+
+uint32_t thermal_shock_get_max_cycles(void)
+{
+    return ts_data.max_cycles;
+}

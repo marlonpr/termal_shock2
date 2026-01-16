@@ -5,46 +5,103 @@
 #include "esp_log.h"
 #include <string.h>
 
+
 #define TAG4 "STATE_MACHINE"
 
 #include "master_link.h"
 
 
+typedef struct {
+    uint32_t time_sec;
+    uint8_t  hot_mask;
+    uint8_t  cold_mask;
+} relay_event_t;
+
+
+
+/* HOT-only relays */
+#define RELAY_HOT_HEATERS   0x0F    // bits 0..3
+
+/*
+ * NOTE:
+ * COMMON relays are physically wired on the HOT relay bank.
+ * They are enabled during both HOT and COLD dwell by FSM logic.
+ */
+
+
+/* COMMON relays (still HOT pins physically) */
+#define RELAY_COMMON_PUMP   (1 << 4)
+#define RELAY_COMMON_FAN    (1 << 5)
+
+#define RELAY_COMMON_ALL    (RELAY_COMMON_PUMP | RELAY_COMMON_FAN)
+
+
+/* ================= SAFETY CHECKS ================= */
+
+_Static_assert(
+    (RELAY_COMMON_ALL & RELAY_HOT_HEATERS) == 0,
+    "COMMON and HOT-only relays overlap"
+);
+
+static const relay_event_t dwell_events[] = {
+    // time, HOT mask, COLD mask //
+
+    {   0, 0x1C, 0x00 },   
+    {  5, 0x3E, 0x00 },   // HOT @60s
+   // {  30, 0x3E, 0x00 },   // HOT @61s
+    
+    
+        
+    {  10, 0x10, 0x00 },   // COLD @61s    
+        
+    
+
+    {   0, 0x00, 0x10 },   // COLD start
+    {  15, 0x00, 0x020 },   // COLD @60s
+    {  30, 0x00, 0x30 },   // COLD @61s
+    
+    
+    {  45, 0x00, 0x30 },   // COLD @61s
+    
+    
+    
+        
+    
+};
+
+
+#define DWELL_EVENT_COUNT \
+    (sizeof(dwell_events) / sizeof(dwell_events[0]))
+    
+    _Static_assert(
+    DWELL_EVENT_COUNT <= 16,
+    "Too many dwell events for event_sent_mask"
+);
+
+
+
 /* ================= CONFIG ================= */
-#define HOT_DWELL_SEC   9
-#define COLD_DWELL_SEC  9
-#define WAIT_SEC        3
+#define HOT_DWELL_SEC   60
+#define COLD_DWELL_SEC  60
+#define WAIT_SEC        15 
 #include "master_link.h"
 #include "esp_log.h"
 
-static const char *TAG = "ACTUATOR_CMD";
+//static const char *TAG5 = "ACTUATOR_CMD";
 
 /* CMD ID must be defined HERE, not in FSM */
 #define CMD_SET_RELAYS  0x04
 
-static void actuator_relay_ack_cb(uint8_t cmd,
-                                  uint8_t status,
-                                  bool ok)
-{
-    ESP_LOGI("ACTUATOR_CMD",
-             "Relay ACK cmd=%u status=%u ok=%d",
-             cmd, status, ok);
-}
 
 
 void actuator_set_relays(uint8_t hot_mask, uint8_t cold_mask)
 {
     uint16_t p16 = ((uint16_t)cold_mask << 8) | hot_mask;
 
-    if (!master_link_send_command(
+    master_link_send_command_noack(
             CMD_SET_RELAYS,
             p16,
-            0,
-            actuator_relay_ack_cb)) {
-
-        ESP_LOGW(TAG, "Relay command rejected (link busy)");
-        return;
-    }
+            0) ;
 
     ESP_LOGI(TAG,
              "TX RELAYS HOT=0x%X COLD=0x%X",
@@ -62,6 +119,9 @@ typedef struct {
 
     bool relay_hot;
     bool relay_cold;
+    
+    uint8_t    event_sent_mask;  // one bit per table entry
+
 } sm_ctx_t;
 
 static sm_ctx_t ctx;
@@ -78,11 +138,55 @@ static uint32_t elapsed_sec(void)
     return now_sec() - ctx.state_enter_sec;
 }
 
+
+
+static void sm_handle_dwell_outputs(void)
+{
+    uint32_t elapsed = now_sec() - ctx.state_enter_sec;
+
+    for (int i = 0; i < DWELL_EVENT_COUNT; i++) {
+
+        /* Skip already sent events */
+        if (ctx.event_sent_mask & (1 << i)) {
+            continue;
+        }
+
+        /* Time not reached yet */
+        if (elapsed < dwell_events[i].time_sec) {
+            continue;
+        }
+
+        /* Enforce state */
+        if (ctx.state == SM_HOT_DWELL &&
+            dwell_events[i].hot_mask != 0) {
+
+            actuator_set_relays(
+                dwell_events[i].hot_mask,
+                0x00
+            );
+
+            ctx.event_sent_mask |= (1 << i);
+        }
+
+        else if (ctx.state == SM_COLD_DWELL &&
+                 dwell_events[i].cold_mask != 0) {
+
+            actuator_set_relays(
+                0x00,
+                dwell_events[i].cold_mask
+            );
+
+            ctx.event_sent_mask |= (1 << i);
+        }
+    }
+}
+
 /* ================= STATE TRANSITION ================= */
 
 static void sm_enter_state(sm_state_t next)
 {
     ctx.state = next;
+    ctx.event_sent_mask = 0;
     ctx.state_enter_sec = now_sec();
 
     ctx.relay_hot  = false;
@@ -90,34 +194,37 @@ static void sm_enter_state(sm_state_t next)
 
     switch (next) {
 
-    case SM_IDLE:
-        actuator_set_relays(0x00, 0x00);
-        ESP_LOGI(TAG, "FSM -> IDLE");
-        break;
+	case SM_IDLE:
+	    actuator_set_relays(0x00, 0x00);
+	    ESP_LOGI(TAG, "FSM -> IDLE");
+	    break;
 
     case SM_HOT_DWELL:
         ctx.relay_hot = true;
         thermal_shock_notify_hot();
-        actuator_set_relays(0x0F, 0x00);
+        //actuator_set_relays(0x05, 0x00);
         ESP_LOGI(TAG, "FSM -> HOT");
         break;
 
     case SM_COLD_DWELL:
         ctx.relay_cold = true;
         thermal_shock_notify_cold();
-        actuator_set_relays(0x00, 0x0F);
+        //actuator_set_relays(0x00, 0x0A);
         ESP_LOGI(TAG, "FSM -> COLD");
         break;
 
-    case SM_WAIT:
-        actuator_set_relays(0x00, 0x00);
-        ESP_LOGI(TAG, "FSM -> WAIT");
-        break;
+	case SM_WAIT:
+	    //actuator_set_relays(0x00, 0x00);
+	    ESP_LOGI(TAG, "FSM -> WAIT");
+	    break;
 
     default:
         break;
     }
 }
+
+
+
 
 /* ================= API ================= */
 
@@ -138,12 +245,28 @@ void sm_stop(void)
     sm_enter_state(SM_IDLE);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ================= FSM TICK ================= */
 /* Call once per second */
 
 void sm_tick(void)
 {
     uint32_t e = elapsed_sec();
+    
+    sm_handle_dwell_outputs();
+
 
     switch (ctx.state) {
 
@@ -180,6 +303,12 @@ void sm_tick(void)
     }
 }
 
+
+
+
+
+
+
 /* ================= QUERIES ================= */
 
 bool sm_relay_hot_on(void)
@@ -201,3 +330,55 @@ uint32_t sm_elapsed_sec(void)
 {
     return elapsed_sec();
 }
+
+
+/*
+static void actuator_relay_ack_cb(uint8_t cmd,
+                                  uint8_t status,
+                                  bool ok)
+{
+    ESP_LOGI("ACTUATOR_CMD",
+             "Relay ACK cmd=%u status=%u ok=%d",
+             cmd, status, ok);
+}
+
+*/
+
+
+
+/*
+
+static const relay_event_t dwell_events[] = {
+    // time, HOT-only, COLD-only, COMMON //
+
+    // HOT dwell //
+    {  0, RELAY_HOT_HEATERS, 0x00, RELAY_COMMON_ALL },
+    { 3, 0x02,              0x00, RELAY_COMMON_ALL }, // drop one heater
+    { 60, 0x03,              0x00, RELAY_COMMON_ALL }, // drop more
+
+    // COLD dwell //
+    {  0, 0x00, 0x2F, RELAY_COMMON_ALL },
+    { 30, 0x00, 0x1F, RELAY_COMMON_ALL },
+};
+
+
+
+*/
+
+/*
+
+
+static const relay_event_t dwell_events[] = {
+    // time, HOT mask, COLD mask //
+
+    {   0, 0x01, 0x00 },   // HOT start
+    {  3, 0x02, 0x00 },   // HOT @60s
+    {  6, 0x03, 0x00 },   // HOT @61s
+    {  9, 0x04, 0x00 },   // HOT @90s
+
+    {   0, 0x00, 0x04 },   // COLD start
+    {  3, 0x00, 0x03 },   // COLD @60s
+    {  6, 0x00, 0x02 },   // COLD @61s
+    {  9, 0x00, 0x01 },   // COLD @90s
+};
+*/
