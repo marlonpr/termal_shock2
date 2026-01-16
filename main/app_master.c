@@ -29,6 +29,7 @@ static const char *TAG7 = "APP_MASTER";
 
 
 
+// number of cycles i mastr_command 	    ts_data.max_cycles  = 3;
 
 
 

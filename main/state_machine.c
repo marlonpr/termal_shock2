@@ -47,21 +47,21 @@ static const relay_event_t dwell_events[] = {
     // time, HOT mask, COLD mask //
 
     {   0, 0x1C, 0x00 },   
-    {  5, 0x3E, 0x00 },   // HOT @60s
+   // {  5, 0x0E, 0x00 },   // HOT @60s
    // {  30, 0x3E, 0x00 },   // HOT @61s
     
     
         
-    {  10, 0x10, 0x00 },   // COLD @61s    
+    {  9, 0x10, 0x00 },   // COLD @61s    
         
     
 
-    {   0, 0x00, 0x10 },   // COLD start
-    {  15, 0x00, 0x020 },   // COLD @60s
-    {  30, 0x00, 0x30 },   // COLD @61s
+    {   0, 0x00, 0x01 },   // COLD start
+    {  9, 0x00, 0x0E },   // COLD @60s
+   // {  30, 0x00, 0x30 },   // COLD @61s
     
     
-    {  45, 0x00, 0x30 },   // COLD @61s
+   // {  45, 0x00, 0x30 },   // COLD @61s
     
     
     
@@ -81,9 +81,9 @@ static const relay_event_t dwell_events[] = {
 
 
 /* ================= CONFIG ================= */
-#define HOT_DWELL_SEC   60
-#define COLD_DWELL_SEC  60
-#define WAIT_SEC        15 
+#define HOT_DWELL_SEC   9
+#define COLD_DWELL_SEC  9
+#define WAIT_SEC        3 
 #include "master_link.h"
 #include "esp_log.h"
 
