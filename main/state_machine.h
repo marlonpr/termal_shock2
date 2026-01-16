@@ -11,6 +11,8 @@ typedef enum {
     SM_COLD_DWELL,
     SM_WAIT
 } sm_state_t;
+/* ================= CONTEXT ================= */
+
 
 /* ================= API ================= */
 void sm_init(void);

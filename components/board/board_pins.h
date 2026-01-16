@@ -37,5 +37,5 @@
 #define PIN_UART_RELAY_RX  18
 
 /* ================= FLOAT SENSORS ================= */
-#define PIN_FLOAT_1   34
-#define PIN_FLOAT_2   35
+#define PIN_FLOAT_1   35
+#define PIN_FLOAT_2   34

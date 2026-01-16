@@ -13,7 +13,6 @@ idf_component_register(
         "master_command.c"
         "rtc_service.c"
         "rtc_device.c"
-        "master_telemetry.c"        
     INCLUDE_DIRS
         "."
     REQUIRES

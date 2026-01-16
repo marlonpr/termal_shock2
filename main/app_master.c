@@ -23,6 +23,99 @@
 #include "master_uart_rx.h"
 #include "protocol.h"
 
+
+/*
+typedef struct __attribute__((packed)) {
+    uint8_t  fsm_state;     // SM_HOT_DWELL, SM_COLD_DWELL, SM_WAIT, ...
+    uint8_t  ts_state;      // TS_RUNNING, TS_PAUSED, TS_FINISHED
+    uint8_t  mode;          // HOT / COLD
+    uint32_t elapsed_sec;   // RTC based
+    uint32_t cycle_count;
+} telemetry_status_t;
+
+*/
+
+
+static bool prev_float_1 = true;
+bool float_ok = true;
+
+void process_float(void )
+{
+    if (float_ok == prev_float_1) {
+        return;
+    }
+
+    prev_float_1 = float_ok;
+
+    uint16_t p;
+
+    /* HOT relay GPIO 4 */
+    p = SINGLE_RELAY_PAYLOAD(RELAY_DOMAIN_HOT, 5, float_ok);
+    master_link_send_command_noack(CMD_SET_SINGLE_RELAY, p, 0);
+
+    /* COLD relay GPIO 26 */
+    p = SINGLE_RELAY_PAYLOAD(RELAY_DOMAIN_COLD, 5, float_ok);
+    master_link_send_command_noack(CMD_SET_SINGLE_RELAY, p, 0);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        float_ok = g_system_data.float_1;
+
+    // Float became OK → arm system //
+    if (float_ok && !prev_float_1) {
+
+        //ts_data.init_done = true;
+        ESP_LOGI("FLOAT", "Float OK → system armed");
+
+        if (ts_data.state == TS_IDLE) {
+           // ts_enter_state(TS_INIT);
+        }
+        //thermal_shock_reset();
+    }
+    // Float lost → emergency reset //
+    else if (!float_ok && prev_float_1) {
+
+        ESP_LOGE("FLOAT", "Float LOST → emergency reset");
+
+        //ts_data.init_done = false;
+        //thermal_shock_reset();
+
+/*
+
+        actuator_send_command(
+            CMD_FORCE_RELAY,
+            0x00,   // all relays OFF //
+            0
+        );
+
+        ts_enter_state(TS_FAULT);
+*/
+    }
+
+    prev_float_1 = float_ok;
+    
+    
+    
+}
+
+
+
+
+
+
+
+
+
 static const char *TAG7 = "APP_MASTER";
 
 void send_cycles(int cycles)
@@ -63,13 +156,14 @@ void uart_send_string(const char *str)
  * FLOAT SAFETY GATE
  * ============================================================ */
 
+/*
 static bool prev_float_1 = false;
 
 static void process_float_gate(void)
 {
     bool float_ok = g_system_data.float_1;
 
-    /* Float became OK → arm system */
+    // Float became OK → arm system //
     if (float_ok && !prev_float_1) {
 
         ts_data.init_done = true;
@@ -80,7 +174,7 @@ static void process_float_gate(void)
         }
         thermal_shock_reset();
     }
-    /* Float lost → emergency reset */
+    // Float lost → emergency reset //
     else if (!float_ok && prev_float_1) {
 
         ESP_LOGE("FLOAT", "Float LOST → emergency reset");
@@ -90,7 +184,7 @@ static void process_float_gate(void)
 
         actuator_send_command(
             CMD_FORCE_RELAY,
-            0x00,   /* all relays OFF */
+            0x00,   // all relays OFF //
             0
         );
 
@@ -100,7 +194,9 @@ static void process_float_gate(void)
     prev_float_1 = float_ok;
 }
 
-/* ============================================================
+//
+
+// ============================================================
  * FLOAT SENSORS
  * ============================================================ */
 
@@ -244,7 +340,7 @@ static void task_sensor_loop(void *arg)
         g_system_data.float_1 = !sensors[0].last_state;
         g_system_data.float_2 = !sensors[1].last_state;
 
-        process_float_gate();
+        process_float();
         
 
            
@@ -285,6 +381,64 @@ if (n2 > 0) {
         
         
         
+/*
+         char tx_buf3[32];
+
+int n3 = snprintf(tx_buf3, sizeof(tx_buf3),
+                 "CYCLES=%lu\n",
+                 (unsigned long)ctx.state_enter_sec);
+                 
+                         ESP_LOGI("TX", "Sending: %s", tx_buf3);
+        ESP_LOGI("TX", "Sending: %s", tx_buf3);
+
+
+if (n3 > 0) {
+    uart_write_bytes(UART_UI, tx_buf3, n3);
+}
+
+       
+
+*/
+        
+        
+        
+        
+        
+        
+        
+        /*
+typedef struct __attribute__((packed)) {
+    uint8_t  fsm_state;     // SM_HOT_DWELL, SM_COLD_DWELL, SM_WAIT, ...
+    uint8_t  ts_state;      // TS_RUNNING, TS_PAUSED, TS_FINISHED
+    uint8_t  mode;          // HOT / COLD
+    uint32_t elapsed_sec;   // RTC based
+    uint32_t cycle_count;
+} telemetry_status_t;
+
+*/
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
@@ -294,7 +448,7 @@ if (n2 > 0) {
         
         static uint8_t last_float_mask;
 
-uint8_t float_mask =
+	uint8_t float_mask =
     (g_system_data.float_1 ? 0x01 : 0) |
     (g_system_data.float_2 ? 0x02 : 0);
 
