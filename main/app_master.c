@@ -34,7 +34,7 @@ static const char *TAG7 = "APP_MASTER";
 
 
 
-
+//int cycles = ts_data.cycle_count;
 
 void uart_send_string(const char *str)
 {
@@ -245,6 +245,32 @@ int n = snprintf(tx_buf, sizeof(tx_buf),
 
 uart_write_bytes(UART_UI, tx_buf, n);
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        char tx_buf2[32];
+
+int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
+                 "CYCLES=%lu\n",
+                 (unsigned long)ts_data.cycle_count);
+
+if (n2 > 0) {
+    uart_write_bytes(UART_UI, tx_buf2, n2);
+}
+
+        
+        
+        
+        
+        
+        
         
         
         

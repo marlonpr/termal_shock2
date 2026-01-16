@@ -57,6 +57,14 @@ static const relay_event_t dwell_events[] = {
     
 
     {   0, 0x00, 0x01 },   // COLD start
+    
+    
+    
+    
+	{   70, 0x00, 0x07 },   // COLD start
+    
+    
+    
     {  90, 0x00, 0x0E },   // COLD @60s
     
     
@@ -197,19 +205,7 @@ static void sm_handle_dwell_outputs(void)
         
         
         
-        
-        else if (ctx.state == SM_WAIT &&
-                 dwell_events[i].cold_mask != 0) {
 
-            actuator_set_relays(
-                0x00,
-                dwell_events[i].cold_mask
-            );
-
-            ctx.event_sent_mask |= (1 << i);
-        }
-        
-        
         
     }
 }
