@@ -52,19 +52,35 @@ static const relay_event_t dwell_events[] = {
     
     
         
-    {  9, 0x10, 0x00 },   // COLD @61s    
+    {  90, 0x10, 0x00 },   // COLD @61s    
         
     
 
     {   0, 0x00, 0x01 },   // COLD start
-    {  9, 0x00, 0x0E },   // COLD @60s
-   // {  30, 0x00, 0x30 },   // COLD @61s
-    
-    
-   // {  45, 0x00, 0x30 },   // COLD @61s
+    {  90, 0x00, 0x0E },   // COLD @60s
     
     
     
+    
+    
+    
+    
+    //{  95, 0x00, 0x0A },   // COLD @60s
+
+    
+    
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
     
 };
@@ -81,9 +97,9 @@ static const relay_event_t dwell_events[] = {
 
 
 /* ================= CONFIG ================= */
-#define HOT_DWELL_SEC   9
-#define COLD_DWELL_SEC  9
-#define WAIT_SEC        3 
+#define HOT_DWELL_SEC   90
+#define COLD_DWELL_SEC  90
+#define WAIT_SEC        30
 #include "master_link.h"
 #include "esp_log.h"
 
@@ -178,6 +194,23 @@ static void sm_handle_dwell_outputs(void)
 
             ctx.event_sent_mask |= (1 << i);
         }
+        
+        
+        
+        
+        else if (ctx.state == SM_WAIT &&
+                 dwell_events[i].cold_mask != 0) {
+
+            actuator_set_relays(
+                0x00,
+                dwell_events[i].cold_mask
+            );
+
+            ctx.event_sent_mask |= (1 << i);
+        }
+        
+        
+        
     }
 }
 

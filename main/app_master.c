@@ -36,6 +36,11 @@ static const char *TAG7 = "APP_MASTER";
 
 
 
+void uart_send_string(const char *str)
+{
+    size_t len = strlen(str);
+    uart_write_bytes(UART_UI, str, len);
+}
 
 
 
@@ -213,16 +218,6 @@ static void task_sensor_loop(void *arg)
 
 
 
-
-
-
-
-
-
-
-
-
-
         /* -------- Float sensors -------- */
         for (int i = 0; i < SENSOR_COUNT; i++) {
             int state = read_debounced(sensors[i].gpio, 5, 10);
@@ -240,19 +235,15 @@ static void task_sensor_loop(void *arg)
         process_float_gate();
         
 
-        
-        //uart_write_bytes(UART_X, "HELLO_UI\n", 9);
-
-        
-         //   uart_write_bytes(UART_UI, (const char *)"hello", 9);
+           
+//master_send_bytes_2((const uint8_t *)"1234", 5);
             
-                       // uart_write_bytes(UART_RELAY, (const char *)"hello2", 9);
+char tx_buf[32];
+int n = snprintf(tx_buf, sizeof(tx_buf),
+                 "T1=%.2f\n",
+                 g_system_data.pt100[0]);
 
-
-        
-        
-        
-          //  master_send_bytes("hello", 9);
+uart_write_bytes(UART_UI, tx_buf, n);
 
         
         
@@ -266,31 +257,6 @@ uint8_t float_mask =
     (g_system_data.float_2 ? 0x02 : 0);
 
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
-        
-        
-        
-        
-        
         
         
         
