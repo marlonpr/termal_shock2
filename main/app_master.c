@@ -25,6 +25,18 @@
 
 static const char *TAG7 = "APP_MASTER";
 
+void send_cycles(int cycles)
+{
+    char tx_buf[32];
+
+    int n = snprintf(tx_buf, sizeof(tx_buf),
+                     "CYCLES=%d\n", cycles);
+
+    if (n > 0) {
+        uart_write_bytes(UART_UI, tx_buf, n);
+        ESP_LOGI("TX", "Sent: %s", tx_buf);
+    }
+}
 
 
 
@@ -260,6 +272,10 @@ uart_write_bytes(UART_UI, tx_buf, n);
 int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
                  "CYCLES=%lu\n",
                  (unsigned long)ts_data.cycle_count);
+                 
+                         ESP_LOGI("TX", "Sending: %s", tx_buf2);
+        ESP_LOGI("TX", "Sending: %s", tx_buf2);
+
 
 if (n2 > 0) {
     uart_write_bytes(UART_UI, tx_buf2, n2);

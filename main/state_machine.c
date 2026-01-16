@@ -52,6 +52,48 @@ static const relay_event_t dwell_events[] = {
     
     
         
+    {  1, 0x10, 0x00 },   // COLD @61s    
+        
+    
+
+    {   0, 0x00, 0x01 },   // COLD start
+    
+    
+    
+    
+	{   1, 0x00, 0x07 },   // COLD start
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    /*
+    
+    {   0, 0x1C, 0x00 },   
+   // {  5, 0x0E, 0x00 },   // HOT @60s
+   // {  30, 0x3E, 0x00 },   // HOT @61s
+    
+    
+        
     {  90, 0x10, 0x00 },   // COLD @61s    
         
     
@@ -66,6 +108,19 @@ static const relay_event_t dwell_events[] = {
     
     
     {  90, 0x00, 0x0E },   // COLD @60s
+    */
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -105,9 +160,9 @@ static const relay_event_t dwell_events[] = {
 
 
 /* ================= CONFIG ================= */
-#define HOT_DWELL_SEC   90
-#define COLD_DWELL_SEC  90
-#define WAIT_SEC        30
+#define HOT_DWELL_SEC   1
+#define COLD_DWELL_SEC  1
+#define WAIT_SEC        1
 #include "master_link.h"
 #include "esp_log.h"
 
