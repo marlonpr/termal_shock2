@@ -57,22 +57,22 @@ _Static_assert(
 static const relay_event_t dwell_events[] = {
     // time, HOT mask, COLD mask //
 
-    {   0, 0x21, 0x00 },   
+    {   0, 0x10, 0x00 },   
    // {  5, 0x0E, 0x00 },   // HOT @60s
    // {  30, 0x3E, 0x00 },   // HOT @61s
     
     
         
-    {  5, 0x10, 0x00 },   // COLD @61s    
+    {  90, 0x10, 0x00 },   // COLD @61s    
         
     
 
-    {   0, 0x00, 0x24 },   // COLD start
+    {   0, 0x00, 0x1 },   // COLD start
     
     
     
     
-	{   5, 0x00, 0x0E },   // COLD start
+	{   30, 0x00, 0x0E },   // COLD start
     
     
     
@@ -143,8 +143,8 @@ static const relay_event_t dwell_events[] = {
 
 
 /* ================= CONFIG ================= */
-#define HOT_DWELL_SEC   5
-#define COLD_DWELL_SEC  5
+#define HOT_DWELL_SEC   90
+#define COLD_DWELL_SEC  60
 #define WAIT_SEC        3
 #include "master_link.h"
 #include "esp_log.h"
