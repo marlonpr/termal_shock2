@@ -26,6 +26,7 @@
 sm_ctx_t ctx;
 
 
+
 static const char *TAG7 = "APP_MASTER";
 
 void send_cycles(int cycles)
@@ -144,37 +145,28 @@ static void task_sensor_loop(void *arg)
 		//================================================================//
   
         
-		//============================= SEND CYCLE ===============================//
-        char tx_buf2[32];
-		int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
-		                 "CYCLES=%lu\n",
-		                 (unsigned long)ts_data.cycle_count);
-		                 
-		                         ESP_LOGI("TX", "Sending: %s", tx_buf2);
-		        ESP_LOGI("TX", "Sending: %s", tx_buf2);
-		
-		
-		if (n2 > 0) {
-		    uart_write_bytes(UART_UI, tx_buf2, n2);
-		}
-		//================================================================//
+
        
              
         
-		//============================= SEND SEC ===============================//
-		char tx_buf3[32];		
-		int n3 = snprintf(tx_buf3, sizeof(tx_buf3),
-		                 "CYCLES=%lu\n",
-		                 (unsigned long)ctx.state_enter_sec);
-		                 
-		                         ESP_LOGI("TX", "Sending: %s", tx_buf3);
-		        ESP_LOGI("TX", "Sending: %s", tx_buf3);
+
 		
+
 		
-		if (n3 > 0) {
-		    uart_write_bytes(UART_UI, tx_buf3, n3);
-		}
-		//================================================================//
+						//============================= SEND CYCLE ===============================//
+		        char tx_buf2[32];
+				int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
+				                 "CYCLES=%lu\n",
+				                 (unsigned long)ts_data.cycle_count);
+				                 
+				                         ESP_LOGI("TX", "Sending: %s", tx_buf2);
+				        ESP_LOGI("TX", "Sending: %s", tx_buf2);
+				
+				
+				if (n2 > 0) {
+				    uart_write_bytes(UART_UI, tx_buf2, n2);
+				}
+				//================================================================//
        
 
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -368,4 +360,31 @@ void uart_test_task(void *arg)
     NULL
 );
 
+*/
+
+
+
+/*
+
+		if(ts_data.state == TS_RUNNING)
+		{
+			//============================= SEND SEC ===============================//
+			char tx_buf3[32];
+			int e_sec = sm_elapsed_sec();		
+			int n3 = snprintf(tx_buf3, sizeof(tx_buf3),
+			                 "E_SEC=%lu\n",
+			                 (unsigned long)e_sec);
+			                 
+			                         ESP_LOGI("TX", "Sending: %s", tx_buf3);
+			        ESP_LOGI("TX", "Sending: %s", tx_buf3);
+			
+			
+			if (n3 > 0) {
+			    uart_write_bytes(UART_UI, tx_buf3, n3);
+			}
+			//================================================================//
+			
+			
+
+		}
 */

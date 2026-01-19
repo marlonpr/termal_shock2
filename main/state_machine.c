@@ -37,7 +37,7 @@ static const relay_event_t hot_dwell_events[] =
 {
    // {   0, RELAY_COMMON_PUMP | RELAY_HOT_HEATERS },
 	{   0,0x22},
-	{   9,0x02},
+	{   90,0x02},
 };
 
 /* COLD dwell sequence */
@@ -45,7 +45,7 @@ static const relay_event_t cold_dwell_events[] =
 {
    // {   0, RELAY_COMMON_PUMP | RELAY_COMMON_FAN },
 	{   0,0x01},
-	{   9,0x02},
+	{   90,0x02},
 };
 
 #define HOT_EVENT_COUNT  \
@@ -59,9 +59,9 @@ _Static_assert(COLD_EVENT_COUNT <= 16, "Too many COLD dwell events");
 
 /* ================= CONFIG ================= */
 
-#define HOT_DWELL_SEC   9
-#define COLD_DWELL_SEC  9
-#define WAIT_SEC        3
+#define HOT_DWELL_SEC   90
+#define COLD_DWELL_SEC  90
+#define WAIT_SEC        30
 
 #define CMD_SET_RELAYS  0x04
 
@@ -160,7 +160,7 @@ static void sm_enter_state(sm_state_t next)
         break;
 
     case SM_WAIT:
-        actuator_set_relays(0x00);
+        //actuator_set_relays(0x00);
         ESP_LOGI(TAG, "FSM -> WAIT");
         break;
 
@@ -175,6 +175,7 @@ void sm_init(void)
 {
     memset(&ctx, 0, sizeof(ctx));
     sm_enter_state(SM_IDLE);
+    ctx.state_enter_sec = 0;
 }
 
 void sm_start(void)
