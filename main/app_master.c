@@ -23,97 +23,7 @@
 #include "master_uart_rx.h"
 #include "protocol.h"
 
-
-/*
-typedef struct __attribute__((packed)) {
-    uint8_t  fsm_state;     // SM_HOT_DWELL, SM_COLD_DWELL, SM_WAIT, ...
-    uint8_t  ts_state;      // TS_RUNNING, TS_PAUSED, TS_FINISHED
-    uint8_t  mode;          // HOT / COLD
-    uint32_t elapsed_sec;   // RTC based
-    uint32_t cycle_count;
-} telemetry_status_t;
-
-*/
-
-
-static bool prev_float_1 = true;
-bool float_ok = true;
-
-void process_float(void )
-{
-    if (float_ok == prev_float_1) {
-        return;
-    }
-
-    prev_float_1 = float_ok;
-
-    uint16_t p;
-
-    /* HOT relay GPIO 4 */
-    p = SINGLE_RELAY_PAYLOAD(RELAY_DOMAIN_HOT, 5, float_ok);
-    master_link_send_command_noack(CMD_SET_SINGLE_RELAY, p, 0);
-
-    /* COLD relay GPIO 26 */
-    p = SINGLE_RELAY_PAYLOAD(RELAY_DOMAIN_COLD, 5, float_ok);
-    master_link_send_command_noack(CMD_SET_SINGLE_RELAY, p, 0);
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-        float_ok = g_system_data.float_1;
-
-    // Float became OK → arm system //
-    if (float_ok && !prev_float_1) {
-
-        //ts_data.init_done = true;
-        ESP_LOGI("FLOAT", "Float OK → system armed");
-
-        if (ts_data.state == TS_IDLE) {
-           // ts_enter_state(TS_INIT);
-        }
-        //thermal_shock_reset();
-    }
-    // Float lost → emergency reset //
-    else if (!float_ok && prev_float_1) {
-
-        ESP_LOGE("FLOAT", "Float LOST → emergency reset");
-
-        //ts_data.init_done = false;
-        //thermal_shock_reset();
-
-/*
-
-        actuator_send_command(
-            CMD_FORCE_RELAY,
-            0x00,   // all relays OFF //
-            0
-        );
-
-        ts_enter_state(TS_FAULT);
-*/
-    }
-
-    prev_float_1 = float_ok;
-    
-    
-    
-}
-
-
-
-
-
-
-
+sm_ctx_t ctx;
 
 
 static const char *TAG7 = "APP_MASTER";
@@ -148,98 +58,6 @@ void uart_send_string(const char *str)
 }
 
 
-
-
-
-
-/* ============================================================
- * FLOAT SAFETY GATE
- * ============================================================ */
-
-/*
-static bool prev_float_1 = false;
-
-static void process_float_gate(void)
-{
-    bool float_ok = g_system_data.float_1;
-
-    // Float became OK → arm system //
-    if (float_ok && !prev_float_1) {
-
-        ts_data.init_done = true;
-        ESP_LOGI("FLOAT", "Float OK → system armed");
-
-        if (ts_data.state == TS_IDLE) {
-            ts_enter_state(TS_INIT);
-        }
-        thermal_shock_reset();
-    }
-    // Float lost → emergency reset //
-    else if (!float_ok && prev_float_1) {
-
-        ESP_LOGE("FLOAT", "Float LOST → emergency reset");
-
-        ts_data.init_done = false;
-        thermal_shock_reset();
-
-        actuator_send_command(
-            CMD_FORCE_RELAY,
-            0x00,   // all relays OFF //
-            0
-        );
-
-        ts_enter_state(TS_FAULT);
-    }
-
-    prev_float_1 = float_ok;
-}
-
-//
-
-// ============================================================
- * FLOAT SENSORS
- * ============================================================ */
-
-typedef struct {
-    gpio_num_t gpio;
-    const char *name;
-    int last_state;
-} float_sensor_t;
-
-static float_sensor_t sensors[] = {
-    { PIN_FLOAT_1, "Tank_High", -1 },
-    { PIN_FLOAT_2, "Tank_Low",  -1 }
-};
-
-#define SENSOR_COUNT (sizeof(sensors) / sizeof(sensors[0]))
-
-static void float_sensors_init(void)
-{
-    gpio_config_t io_conf = {
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,   // external pull-ups
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-
-    for (int i = 0; i < SENSOR_COUNT; i++) {
-        io_conf.pin_bit_mask = (1ULL << sensors[i].gpio);
-        gpio_config(&io_conf);
-    }
-}
-
-static int read_debounced(gpio_num_t gpio, int samples, int delay_ms)
-{
-    int state = gpio_get_level(gpio);
-
-    for (int i = 0; i < samples; i++) {
-        vTaskDelay(pdMS_TO_TICKS(delay_ms));
-        if (gpio_get_level(gpio) != state) {
-            return -1;
-        }
-    }
-    return state;
-}
 
 /* ============================================================
  * PT100 / MAX31865
@@ -312,150 +130,52 @@ static void task_sensor_loop(void *arg)
                  g_system_data.pt100[1],
                  g_system_data.pt100[2],
                  g_system_data.pt100[3]);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        /* -------- Float sensors -------- */
-        for (int i = 0; i < SENSOR_COUNT; i++) {
-            int state = read_debounced(sensors[i].gpio, 5, 10);
-            if (state >= 0 && state != sensors[i].last_state) {
-                sensors[i].last_state = state;
-                ESP_LOGI("FLOAT", "%s: %s",
-                         sensors[i].name,
-                         state == 0 ? "CLOSED" : "OPEN");
-            }
-        }
-
-        g_system_data.float_1 = !sensors[0].last_state;
-        g_system_data.float_2 = !sensors[1].last_state;
-
-        process_float();
-        
-
            
-//master_send_bytes_2((const uint8_t *)"1234", 5);
-            
-char tx_buf[32];
-int n = snprintf(tx_buf, sizeof(tx_buf),
-                 "T1=%.2f\n",
-                 g_system_data.pt100[0]);
+		//master_send_bytes_2((const uint8_t *)"1234", 5);
 
-uart_write_bytes(UART_UI, tx_buf, n);
 
+		//============================= SEND TEMP ===============================//            
+		char tx_buf[32];
+		int n = snprintf(tx_buf, sizeof(tx_buf),
+		                 "T1=%.2f\n",
+		                 g_system_data.pt100[0]);
+		
+		uart_write_bytes(UART_UI, tx_buf, n);
+		//================================================================//
+  
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
+		//============================= SEND CYCLE ===============================//
         char tx_buf2[32];
-
-int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
-                 "CYCLES=%lu\n",
-                 (unsigned long)ts_data.cycle_count);
-                 
-                         ESP_LOGI("TX", "Sending: %s", tx_buf2);
-        ESP_LOGI("TX", "Sending: %s", tx_buf2);
-
-
-if (n2 > 0) {
-    uart_write_bytes(UART_UI, tx_buf2, n2);
-}
-
-        
-        
-        
-        
-/*
-         char tx_buf3[32];
-
-int n3 = snprintf(tx_buf3, sizeof(tx_buf3),
-                 "CYCLES=%lu\n",
-                 (unsigned long)ctx.state_enter_sec);
-                 
-                         ESP_LOGI("TX", "Sending: %s", tx_buf3);
-        ESP_LOGI("TX", "Sending: %s", tx_buf3);
-
-
-if (n3 > 0) {
-    uart_write_bytes(UART_UI, tx_buf3, n3);
-}
-
+		int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
+		                 "CYCLES=%lu\n",
+		                 (unsigned long)ts_data.cycle_count);
+		                 
+		                         ESP_LOGI("TX", "Sending: %s", tx_buf2);
+		        ESP_LOGI("TX", "Sending: %s", tx_buf2);
+		
+		
+		if (n2 > 0) {
+		    uart_write_bytes(UART_UI, tx_buf2, n2);
+		}
+		//================================================================//
        
-
-*/
+             
         
-        
-        
-        
-        
-        
-        
-        /*
-typedef struct __attribute__((packed)) {
-    uint8_t  fsm_state;     // SM_HOT_DWELL, SM_COLD_DWELL, SM_WAIT, ...
-    uint8_t  ts_state;      // TS_RUNNING, TS_PAUSED, TS_FINISHED
-    uint8_t  mode;          // HOT / COLD
-    uint32_t elapsed_sec;   // RTC based
-    uint32_t cycle_count;
-} telemetry_status_t;
-
-*/
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        static uint8_t last_float_mask;
-
-	uint8_t float_mask =
-    (g_system_data.float_1 ? 0x01 : 0) |
-    (g_system_data.float_2 ? 0x02 : 0);
-
-
-        
-        
-        
+		//============================= SEND SEC ===============================//
+		char tx_buf3[32];		
+		int n3 = snprintf(tx_buf3, sizeof(tx_buf3),
+		                 "CYCLES=%lu\n",
+		                 (unsigned long)ctx.state_enter_sec);
+		                 
+		                         ESP_LOGI("TX", "Sending: %s", tx_buf3);
+		        ESP_LOGI("TX", "Sending: %s", tx_buf3);
+		
+		
+		if (n3 > 0) {
+		    uart_write_bytes(UART_UI, tx_buf3, n3);
+		}
+		//================================================================//
+       
 
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
@@ -538,7 +258,6 @@ void app_master_init(void)
     master_transport_init();
     cmdmgr_init();
 
-    float_sensors_init();
     sm_init();
     
     thermal_shock_init(3);
