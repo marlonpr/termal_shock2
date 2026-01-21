@@ -14,7 +14,7 @@ void master_handle_command(const payload_command_t *cmd)
 	
 	    /* Start MASTER logic */
 	    //thermal_shock_init(3);
-	    ts_data.max_cycles  = 3;
+	    ts_data.max_cycles  = 500;
 
 	    thermal_shock_start();
 	
