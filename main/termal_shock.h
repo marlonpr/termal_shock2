@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+void send_cycle(void);
+
 typedef enum {
     TS_IDLE,
     TS_INIT,

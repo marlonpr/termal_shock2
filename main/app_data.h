@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define NUM_PT100 2  // number of PT100 sensors
+#define NUM_PT100 1  // number of PT100 sensors
 
 typedef struct {
     uint32_t sequence;

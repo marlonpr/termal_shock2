@@ -5,38 +5,32 @@
 #include "esp_log.h"
 
 #include "master_transport.h"
-// app_master.c
-#include "app_master.h"
-#include "app_data.h"
-#include "driver/gpio.h"
 #include "driver/uart.h"
-#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-
-#include "bus.h"
-#include "max31865.h"
 #include "board_pins.h"
 
 #include "state_machine.h"
 #include "termal_shock.h"
-#include "rtc_service.h"
-
-#include "command_manager.h"
 #include "master_transport.h"
 #include "master_link.h"
-#include "master_uart_rx.h"
 #include "protocol.h"
 
-
-static const char *TAG8 = "THERMAL_SHOCK";
-
-static uint32_t ts_start_time_sec = 0;
-static ts_state_t last_sent_state = TS_FAULT; /* force first send */
-
-
 /* ================= GLOBAL DATA ================= */
+
+void send_cycle(void)
+{
+    char tx_buf2[32];
+	int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
+	                 "CYCLES=%lu\n",
+	                 (unsigned long)ts_data.cycle_count);
+	
+	if (n2 > 0) {
+	    uart_write_bytes(UART_UI, tx_buf2, n2);
+	}
+    ESP_LOGI("TX", "Sending: %s", tx_buf2);
+}
 
 thermal_shock_t ts_data;
 
@@ -97,6 +91,8 @@ void thermal_shock_start(void)
         ts_enter_state(TS_RUNNING);
 
         ESP_LOGI(TAG, "Thermal shock STARTED");
+        
+        send_cycle();
     }
 }
 
@@ -141,32 +137,14 @@ void thermal_shock_notify_cycle_complete(void)
 {
     ts_data.cycle_count++;
     
+	send_cycle();
     
-            
-        
-        
-        char tx_buf2[32];
-
-int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
-                 "CYCLES=%lu\n",
-                 (unsigned long)ts_data.cycle_count);
-
-if (n2 > 0) {
-    uart_write_bytes(UART_UI, tx_buf2, n2);
-}
-
-        
-        ESP_LOGI("TX", "Sending: %s", tx_buf2);
-
-        
-        
-
     ESP_LOGI(TAG,
              "Cycle %lu / %lu completed",
              ts_data.cycle_count,
              ts_data.max_cycles);
 
-    if (ts_data.cycle_count >= ts_data.max_cycles) {
+    if (ts_data.cycle_count > ts_data.max_cycles) {
 
         /* Stop FSM first (prevents new relay requests) */
         sm_stop();

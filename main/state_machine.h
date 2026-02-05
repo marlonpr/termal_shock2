@@ -11,19 +11,6 @@ typedef enum {
     SM_COLD_DWELL,
     SM_WAIT
 } sm_state_t;
-/* ================= CONTEXT ================= */
-
-typedef struct {
-    sm_state_t state;
-    uint32_t   state_enter_sec;
-
-    bool       relay_hot;
-    bool       relay_cold;
-
-    uint8_t    event_sent_mask;   // per-table bitmask
-} sm_ctx_t;
-
-extern sm_ctx_t ctx;
 
 
 /* ================= API ================= */

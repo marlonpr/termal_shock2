@@ -1,14 +1,46 @@
 // state_machine.c
-
 #include "state_machine.h"
 #include "termal_shock.h"
 #include "rtc_service.h"
 #include "esp_log.h"
 #include "master_link.h"
 #include <string.h>
+#include "driver/uart.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "board_pins.h"
+
 
 #define TAG "STATE_MACHINE"
 
+
+
+/* ================= CONTEXT ================= */
+
+typedef struct {
+    sm_state_t state;
+    uint32_t   state_enter_sec;
+
+    bool       relay_hot;
+    bool       relay_cold;
+
+    uint8_t    event_sent_mask;   // per-table bitmask
+} sm_ctx_t;
+
+sm_ctx_t ctx;
+
+/* ================= TIME HELPERS ================= */
+
+static uint32_t now_sec(void)
+{
+    return rtc_get_epoch_seconds();
+}
+
+static uint32_t elapsed_sec(void)
+{
+    return now_sec() - ctx.state_enter_sec;
+}
 /* ================= RELAY DEFINITIONS ================= */
 
 /*
@@ -25,6 +57,27 @@
 
 #define RELAY_COMMON_ALL   (RELAY_COMMON_PUMP | RELAY_COMMON_FAN)
 
+void send_state(void)
+{
+    char tx_buf[64];
+
+    uint32_t elapsed =
+        now_sec() - ctx.state_enter_sec;
+
+    int n = snprintf(tx_buf, sizeof(tx_buf),
+        "STATE=%d,ELAPSED=%lu\n",
+        sm_get_state(),
+        (unsigned long)elapsed
+    );
+
+    if (n > 0) {
+        uart_write_bytes(UART_UI, tx_buf, n);
+    }
+
+    ESP_LOGI("TX", "Sending: %s", tx_buf);
+}
+
+
 /* ================= DWELL EVENTS ================= */
 
 typedef struct {
@@ -36,7 +89,7 @@ typedef struct {
 static const relay_event_t hot_dwell_events[] = 
 {
    // {   0, RELAY_COMMON_PUMP | RELAY_HOT_HEATERS },
-	{   0,0x22},
+	{   0,0x72},//0x22, 0x32
 	{   90,0x02},
 };
 
@@ -44,7 +97,7 @@ static const relay_event_t hot_dwell_events[] =
 static const relay_event_t cold_dwell_events[] = 
 {
    // {   0, RELAY_COMMON_PUMP | RELAY_COMMON_FAN },
-	{   0,0x01},
+	{   0,0x81}, //0x01
 	{   90,0x02},
 };
 
@@ -81,17 +134,7 @@ static void actuator_set_relays(uint8_t relay_mask)
     ESP_LOGI(TAG, "TX RELAYS MASK=0x%02X", relay_mask);
 }
 
-/* ================= TIME HELPERS ================= */
 
-static uint32_t now_sec(void)
-{
-    return rtc_get_epoch_seconds();
-}
-
-static uint32_t elapsed_sec(void)
-{
-    return now_sec() - ctx.state_enter_sec;
-}
 
 /* ================= DWELL OUTPUT HANDLER ================= */
 
@@ -148,20 +191,23 @@ static void sm_enter_state(sm_state_t next)
         break;
 
     case SM_HOT_DWELL:
-        ctx.relay_hot = true;
+        ctx.relay_hot = true;        
         thermal_shock_notify_hot();
         ESP_LOGI(TAG, "FSM -> HOT DWELL");
+        send_state();
         break;
 
     case SM_COLD_DWELL:
         ctx.relay_cold = true;
         thermal_shock_notify_cold();
         ESP_LOGI(TAG, "FSM -> COLD DWELL");
+        send_state();
         break;
 
     case SM_WAIT:
         //actuator_set_relays(0x00);
         ESP_LOGI(TAG, "FSM -> WAIT");
+        send_state();
         break;
 
     default:
@@ -201,25 +247,29 @@ void sm_tick(void)
 
     case SM_HOT_DWELL:
         ESP_LOGI(TAG, "HOT  %lu / %d", e, HOT_DWELL_SEC);
-        if (e >= HOT_DWELL_SEC) {
+        if (e >= HOT_DWELL_SEC) 
+        {
             sm_enter_state(SM_WAIT);
         }
         break;
 
     case SM_COLD_DWELL:
         ESP_LOGI(TAG, "COLD %lu / %d", e, COLD_DWELL_SEC);
-        if (e >= COLD_DWELL_SEC) {
-            thermal_shock_notify_cycle_complete();
+        if (e >= COLD_DWELL_SEC) 
+        {
             sm_enter_state(SM_WAIT);
+            thermal_shock_notify_cycle_complete();
         }
         break;
 
     case SM_WAIT:
         ESP_LOGI(TAG, "WAIT %lu / %d", e, WAIT_SEC);
         if (e >= WAIT_SEC) {
-            if (ts_data.mode == TS_MODE_HOT) {
+            if (ts_data.mode == TS_MODE_HOT) 
+            {
                 sm_enter_state(SM_COLD_DWELL);
-            } else {
+            } else 
+            {
                 sm_enter_state(SM_HOT_DWELL);
             }
         }

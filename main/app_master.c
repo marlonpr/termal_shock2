@@ -1,7 +1,6 @@
 // app_master.c
 #include "app_master.h"
 #include "app_data.h"
-#include "driver/gpio.h"
 #include "driver/uart.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -9,7 +8,6 @@
 #include "esp_log.h"
 
 #include "bus.h"
-#include "ds3231.h"
 #include "max31865.h"
 #include "board_pins.h"
 
@@ -23,53 +21,21 @@
 #include "master_uart_rx.h"
 #include "protocol.h"
 
-sm_ctx_t ctx;
-
-
 
 static const char *TAG7 = "APP_MASTER";
 
-void send_cycles(int cycles)
-{
-    char tx_buf[32];
-
-    int n = snprintf(tx_buf, sizeof(tx_buf),
-                     "CYCLES=%d\n", cycles);
-
-    if (n > 0) {
-        uart_write_bytes(UART_UI, tx_buf, n);
-        ESP_LOGI("TX", "Sent: %s", tx_buf);
-    }
-}
-
-
-
-
 // number of cycles i mastr_command 	    ts_data.max_cycles  = 3;
-
-
-
-
 //int cycles = ts_data.cycle_count;
-
-void uart_send_string(const char *str)
-{
-    size_t len = strlen(str);
-    uart_write_bytes(UART_UI, str, len);
-}
-
-
 
 /* ============================================================
  * PT100 / MAX31865
  * ============================================================ */
 
-#define NUM_PT100 2
 
 static max31865_t max31865_dev[NUM_PT100];
 static const int max31865_cs_pins[NUM_PT100] = {
     PIN_MAX31865_CS1,
-    PIN_MAX31865_CS2
+    //PIN_MAX31865_CS2
 };
 
 static esp_err_t init_max31865_devices(void)
@@ -107,14 +73,12 @@ static esp_err_t init_max31865_devices(void)
 
 static void task_sensor_loop(void *arg)
 {
-    ds3231_time_t last_time = {0};
+    //ds3231_time_t last_time = {0};
     float last_temp[NUM_PT100] = {0};
 
     while (1) {
 
-        rtc_service_get_time(&last_time);
-        g_system_data.second = last_time.second;
-
+        //rtc_service_get_time(&last_time); //g_system_data.second = last_time.second;        
         /* -------- Read PT100 -------- */
         for (int i = 0; i < NUM_PT100; i++) {
             float t;
@@ -123,17 +87,10 @@ static void task_sensor_loop(void *arg)
             }
             g_system_data.pt100[i] = last_temp[i];
         }
-
-        /* -------- Log once per second -------- */
+        /* -------- Log once per 3 second -------- */
         ESP_LOGI("TEMP",
-                 "T1=%.2f T2=%.2f T3=%.2f T4=%.2f",
-                 g_system_data.pt100[0],
-                 g_system_data.pt100[1],
-                 g_system_data.pt100[2],
-                 g_system_data.pt100[3]);
-           
-		//master_send_bytes_2((const uint8_t *)"1234", 5);
-
+                 "T1=%.2f ",
+                 g_system_data.pt100[0]);           
 
 		//============================= SEND TEMP ===============================//            
 		char tx_buf[32];
@@ -143,33 +100,7 @@ static void task_sensor_loop(void *arg)
 		
 		uart_write_bytes(UART_UI, tx_buf, n);
 		//================================================================//
-  
-        
-
-       
-             
-        
-
-		
-
-		
-						//============================= SEND CYCLE ===============================//
-		        char tx_buf2[32];
-				int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
-				                 "CYCLES=%lu\n",
-				                 (unsigned long)ts_data.cycle_count);
-				                 
-				                         ESP_LOGI("TX", "Sending: %s", tx_buf2);
-				        ESP_LOGI("TX", "Sending: %s", tx_buf2);
-				
-				
-				if (n2 > 0) {
-				    uart_write_bytes(UART_UI, tx_buf2, n2);
-				}
-				//================================================================//
-       
-
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
 
@@ -252,7 +183,7 @@ void app_master_init(void)
 
     sm_init();
     
-    thermal_shock_init(3);
+    thermal_shock_init(3); // number of cycles i mastr_command 	    ts_data.max_cycles  = 3;
 
     ESP_LOGI(TAG7, "Master init complete");
 }
@@ -387,4 +318,24 @@ void uart_test_task(void *arg)
 			
 
 		}
+*/
+
+
+
+/*
+						//============================= SEND CYCLE ===============================//
+		        char tx_buf2[32];
+				int n2 = snprintf(tx_buf2, sizeof(tx_buf2),
+				                 "CYCLES=%lu\n",
+				                 (unsigned long)ts_data.cycle_count);
+				                 
+				                         ESP_LOGI("TX", "Sending: %s", tx_buf2);
+				        ESP_LOGI("TX", "Sending: %s", tx_buf2);
+				
+				
+				if (n2 > 0) {
+				    uart_write_bytes(UART_UI, tx_buf2, n2);
+				}
+				//================================================================//
+       
 */
