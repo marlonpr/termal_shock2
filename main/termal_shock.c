@@ -84,7 +84,7 @@ void thermal_shock_start(void)
 
     if (ts_data.state == TS_IDLE || ts_data.state == TS_FINISHED) {
 
-        ts_data.cycle_count = 1;
+        ts_data.cycle_count = 0; //1
         ts_data.mode = TS_MODE_HOT;
 
         sm_start();
@@ -144,7 +144,7 @@ void thermal_shock_notify_cycle_complete(void)
              ts_data.cycle_count,
              ts_data.max_cycles);
 
-    if (ts_data.cycle_count > ts_data.max_cycles) {
+    if (ts_data.cycle_count >= ts_data.max_cycles) {
 
         /* Stop FSM first (prevents new relay requests) */
         sm_stop();
