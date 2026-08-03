@@ -114,7 +114,16 @@ void thermal_shock_reset(void)
 
     ts_enter_state(TS_IDLE);
 
-    ESP_LOGI(TAG, "Thermal shock RESET");
+    /*
+     * Notify UI that the cycle counter was reset.
+     */
+    send_cycle();
+
+    ESP_LOGI(
+        TAG,
+        "Thermal shock RESET, cycles=%lu",
+        (unsigned long)ts_data.cycle_count
+    );
 }
 
 /* ================= CALLBACKS FROM FSM ================= */

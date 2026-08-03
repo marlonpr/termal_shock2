@@ -66,6 +66,8 @@ typedef struct {
 
 /* ================= COMMAND DEFINITIONS ================= */
 
+/* ================= COMMAND DEFINITIONS ================= */
+
 /* Command IDs */
 typedef enum {
     CMD_NOP           = 0x00,
@@ -74,8 +76,20 @@ typedef enum {
     CMD_SET_MODE      = 0x03,
     CMD_FORCE_RELAY   = 0x04,
     CMD_SYNC_TIME     = 0x05,
-    CMD_REQUEST_STATE = 0x06
+    CMD_REQUEST_STATE = 0x06,
+	CMD_SWITCH_MODE   = 0x07
 } command_id_t;
+
+
+typedef enum {
+    TEST_MODE_1 = 1,   // 500 cycles
+    TEST_MODE_2 = 2    // 250 cycles
+} test_mode_t;
+
+#define MODE_1_MAX_CYCLES 500 //
+#define MODE_2_MAX_CYCLES 250 //
+
+
 
 /* Command payload */
 #pragma pack(push, 1)
